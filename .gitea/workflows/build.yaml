@@ -17,15 +17,18 @@ jobs:
 
       - name: Build linux/amd64
         run: |
-          podman build --platform linux/amd64             -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-amd64 .
+          podman build --platform linux/amd64 \
+            -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-amd64 .
 
       - name: Build linux/arm/v7 (RPi 3B, 32-bit OS)
         run: |
-          podman build --platform linux/arm/v7             -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-armv7 .
+          podman build --platform linux/arm/v7 \
+            -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-armv7 .
 
       - name: Build linux/arm64 (RPi 3B/4/5, 64-bit OS)
         run: |
-          podman build --platform linux/arm64             -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-arm64 .
+          podman build --platform linux/arm64 \
+            -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-arm64 .
 
       - name: Login and push multi-arch manifest
         env:
@@ -39,8 +42,14 @@ jobs:
           podman push ${IMAGE}:${TAG}-armv7
           podman push ${IMAGE}:${TAG}-arm64
 
-          podman manifest create ${IMAGE}:${TAG}             ${IMAGE}:${TAG}-amd64             ${IMAGE}:${TAG}-armv7             ${IMAGE}:${TAG}-arm64
+          podman manifest create ${IMAGE}:${TAG} \
+            ${IMAGE}:${TAG}-amd64 \
+            ${IMAGE}:${TAG}-armv7 \
+            ${IMAGE}:${TAG}-arm64
           podman manifest push ${IMAGE}:${TAG}
 
-          podman manifest create ${IMAGE}:latest             ${IMAGE}:${TAG}-amd64             ${IMAGE}:${TAG}-armv7             ${IMAGE}:${TAG}-arm64
+          podman manifest create ${IMAGE}:latest \
+            ${IMAGE}:${TAG}-amd64 \
+            ${IMAGE}:${TAG}-armv7 \
+            ${IMAGE}:${TAG}-arm64
           podman manifest push --all ${IMAGE}:latest
