@@ -42,7 +42,8 @@ jobs:
           podman push ${IMAGE}:${TAG}-armv7
           podman push ${IMAGE}:${TAG}-arm64
 
-          podman manifest create --replace ${IMAGE}:${TAG} \
+          podman manifest rm ${IMAGE}:${TAG} 2>/dev/null || podman rmi ${IMAGE}:${TAG} 2>/dev/null || true
+          podman manifest create ${IMAGE}:${TAG} \
             ${IMAGE}:${TAG}-amd64 \
             ${IMAGE}:${TAG}-armv7 \
             ${IMAGE}:${TAG}-arm64
