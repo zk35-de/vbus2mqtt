@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23-alpine AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     -o /bin/vbus2mqtt ./cmd/vbus2mqtt
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM alpine:3.21
+FROM docker.io/library/alpine:3.21
 
 LABEL org.opencontainers.image.title="vbus2mqtt" \
       org.opencontainers.image.description="RESOL VBus (USB serial) → MQTT bridge" \
