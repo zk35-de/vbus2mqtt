@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -84,7 +85,7 @@ func main() {
 						"src", fmt.Sprintf("0x%04X", f.Source),
 						"dst", fmt.Sprintf("0x%04X", f.Destination),
 						"cmd", fmt.Sprintf("0x%04X", f.Command),
-						"payload_len", len(f.Payload),
+						"payload_hex", hex.EncodeToString(f.Payload),
 					)
 					continue
 				}
