@@ -1,0 +1,27 @@
+---
+# Podman Compose / Docker Compose
+# Verwendung:
+#   cp .env.example .env && $EDITOR .env
+#   podman-compose up -d
+#
+# Seriellem Gerät Zugriff: Gerät muss auf dem Host existieren.
+# Der Container läuft als UID 1000 – dialout-Gruppe (GID) ggf. anpassen:
+#   sudo usermod -aG dialout $(whoami)   # Host-User in dialout-Gruppe
+
+services:
+  vbus2mqtt:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: vbus2mqtt
+    restart: unless-stopped
+    env_file: .env
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    # Kein Netz-Exposure nötig – MQTT outbound only
+    network_mode: host
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
