@@ -1,27 +1,51 @@
 ---
 # Podman Compose / Docker Compose
-# Verwendung:
-#   cp .env.example .env && $EDITOR .env
-#   podman-compose up -d
 #
-# Seriellem Gerät Zugriff: Gerät muss auf dem Host existieren.
-# Der Container läuft als UID 1000 – dialout-Gruppe (GID) ggf. anpassen:
-#   sudo usermod -aG dialout $(whoami)   # Host-User in dialout-Gruppe
+# Quickstart:
+#   cp .env.example .env && $EDITOR .env
+#   docker compose up -d
+#
+# Multi-arch build:
+#   docker buildx build --platform linux/amd64,linux/arm64 -t vbus2mqtt .
 
 services:
+
   vbus2mqtt:
     build:
       context: .
-      dockerfile: Containerfile
+      dockerfile: Dockerfile
+    image: vbus2mqtt:latest
     container_name: vbus2mqtt
     restart: unless-stopped
     env_file: .env
+    # USB serial device access
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
-    # Kein Netz-Exposure nötig – MQTT outbound only
+    # privileged gives full access to all /dev devices; use when the device
+    # path is unknown or changes between reboots (udev rules recommended instead)
+    privileged: true
+    # VBus bridge only needs outbound TCP to the MQTT broker
     network_mode: host
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    tmpfs:
-      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: local Mosquitto broker for testing
+  # Remove this service if you have an existing MQTT broker.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
