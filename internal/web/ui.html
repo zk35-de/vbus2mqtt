@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vbus2mqtt</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0f172a;
+  --surface:  #1e293b;
+  --surface2: #263044;
+  --border:   #334155;
+  --text:     #e2e8f0;
+  --muted:    #94a3b8;
+  --accent:   #38bdf8;
+  --success:  #4ade80;
+  --error:    #f87171;
+  --warning:  #fb923c;
+  --radius:   6px;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "Fira Mono", monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 24px 16px 64px;
+}
+
+.container { max-width: 640px; margin: 0 auto; }
+
+/* ── header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+.badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+/* ── status card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+}
+@media (max-width: 480px) { .status-grid { grid-template-columns: 1fr; } }
+
+.status-item label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.status-item .value {
+  font-family: var(--mono);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.dot.red   { background: var(--error);   box-shadow: 0 0 6px var(--error); }
+
+/* ── form sections ── */
+.section-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 24px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.section-header:first-child { margin-top: 0; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.field .hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus {
+  border-color: var(--accent);
+}
+select option { background: var(--surface); }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.checkbox-row span { font-size: 13px; }
+
+/* ── two-column layout for compact fields ── */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+
+/* ── actions ── */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+button {
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: opacity 0.15s;
+}
+button:active { opacity: 0.8; }
+.btn-primary { background: var(--accent); color: #0f172a; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.feedback {
+  font-size: 13px;
+  font-family: var(--mono);
+  transition: opacity 0.3s;
+}
+.feedback.ok    { color: var(--success); }
+.feedback.err   { color: var(--error); }
+.feedback.hide  { opacity: 0; }
+
+/* ── restart notice ── */
+.restart-notice {
+  display: none;
+  background: rgba(251,146,60,0.1);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--warning);
+  margin-top: 12px;
+}
+.restart-notice.show { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>vbus2mqtt</h1>
+    <span class="badge" id="version">…</span>
+  </div>
+
+  <!-- Status -->
+  <div class="card">
+    <div class="card-title">Status</div>
+    <div class="status-grid">
+      <div class="status-item">
+        <label>MQTT</label>
+        <div class="value">
+          <span class="dot" id="mqtt-dot"></span>
+          <span id="mqtt-label">…</span>
+        </div>
+      </div>
+      <div class="status-item">
+        <label>Last publish</label>
+        <div class="value" id="last-publish">…</div>
+      </div>
+      <div class="status-item">
+        <label>Devices</label>
+        <div class="value" id="devices">…</div>
+      </div>
+      <div class="status-item">
+        <label>Uptime</label>
+        <div class="value" id="uptime">…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config Form -->
+  <div class="card">
+    <div class="card-title">Settings</div>
+
+    <div class="section-header">Serial</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="serial_port">Port</label>
+        <div class="hint">Leave empty for auto-detect</div>
+        <input type="text" id="serial_port" placeholder="/dev/ttyUSB0">
+      </div>
+      <div class="field">
+        <label for="baud_rate">Baud rate</label>
+        <div class="hint">VBus always uses 9600</div>
+        <input type="number" id="baud_rate" min="1200" max="115200">
+      </div>
+    </div>
+
+    <div class="section-header">MQTT</div>
+    <div class="field">
+      <label for="mqtt_broker">Broker URL</label>
+      <div class="hint">e.g. tcp://192.168.1.10:1883</div>
+      <input type="text" id="mqtt_broker" placeholder="tcp://localhost:1883">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="mqtt_topic_prefix">Topic prefix</label>
+        <input type="text" id="mqtt_topic_prefix" placeholder="vbus">
+      </div>
+      <div class="field">
+        <label for="mqtt_qos">QoS</label>
+        <select id="mqtt_qos">
+          <option value="0">0 – At most once</option>
+          <option value="1">1 – At least once</option>
+          <option value="2">2 – Exactly once</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="mqtt_user">Username</label>
+        <input type="text" id="mqtt_user" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="mqtt_pass">Password</label>
+        <div class="hint">Leave empty to keep existing</div>
+        <input type="password" id="mqtt_pass" autocomplete="current-password" placeholder="unchanged">
+      </div>
+    </div>
+    <div class="field">
+      <label class="checkbox-row">
+        <input type="checkbox" id="mqtt_retain">
+        <span>Retain last message on broker</span>
+      </label>
+    </div>
+
+    <div class="section-header">Application</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="publish_interval">Publish interval</label>
+        <div class="hint">Go duration, e.g. 30s, 1m</div>
+        <input type="text" id="publish_interval" placeholder="30s">
+      </div>
+      <div class="field">
+        <label for="log_level">Log level</label>
+        <select id="log_level">
+          <option value="debug">debug</option>
+          <option value="info">info</option>
+          <option value="warn">warn</option>
+          <option value="error">error</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="log_format">Log format</label>
+      <select id="log_format">
+        <option value="json">json</option>
+        <option value="text">text</option>
+      </select>
+      <div class="hint" style="margin-top:4px">Log format changes take effect after restart.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="save-btn" onclick="saveConfig()">Save</button>
+      <span class="feedback hide" id="feedback"></span>
+    </div>
+
+    <div class="restart-notice" id="restart-notice">
+      MQTT broker, credentials, serial port, or baud rate changed — the bridge will reconnect automatically.
+    </div>
+  </div>
+
+</div>
+
+<script>
+let originalConfig = null;
+
+const RECONNECT_FIELDS = ['mqtt_broker', 'mqtt_user', 'serial_port', 'baud_rate'];
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    originalConfig = cfg;
+    document.getElementById('serial_port').value       = cfg.serial_port ?? '';
+    document.getElementById('baud_rate').value         = cfg.baud_rate ?? 9600;
+    document.getElementById('mqtt_broker').value       = cfg.mqtt_broker ?? '';
+    document.getElementById('mqtt_topic_prefix').value = cfg.mqtt_topic_prefix ?? '';
+    document.getElementById('mqtt_user').value         = cfg.mqtt_user ?? '';
+    document.getElementById('mqtt_pass').value         = ''; // never pre-fill passwords
+    document.getElementById('mqtt_retain').checked     = cfg.mqtt_retain ?? true;
+    document.getElementById('mqtt_qos').value          = String(cfg.mqtt_qos ?? 0);
+    document.getElementById('publish_interval').value  = cfg.publish_interval ?? '30s';
+    document.getElementById('log_level').value         = cfg.log_level ?? 'info';
+    document.getElementById('log_format').value        = cfg.log_format ?? 'json';
+  } catch (e) {
+    showFeedback('Failed to load config: ' + e.message, true);
+  }
+}
+
+async function loadStatus() {
+  try {
+    const [statusR, healthR] = await Promise.all([
+      fetch('/api/status'),
+      fetch('/health'),
+    ]);
+    const st = await statusR.json();
+    const h  = await healthR.json();
+
+    document.getElementById('version').textContent = h.version ?? '?';
+
+    const connected = !!st.mqtt_connected;
+    const dot = document.getElementById('mqtt-dot');
+    dot.className = 'dot ' + (connected ? 'green' : 'red');
+    document.getElementById('mqtt-label').textContent = connected ? 'connected' : 'disconnected';
+
+    const lp = st.last_publish ? new Date(st.last_publish) : null;
+    document.getElementById('last-publish').textContent =
+      lp && lp.getFullYear() > 2000 ? formatRelative(lp) : '—';
+
+    const devs = st.devices ?? [];
+    document.getElementById('devices').textContent = devs.length ? devs.join(', ') : '—';
+
+    document.getElementById('uptime').textContent = formatUptime(st.uptime_seconds ?? 0);
+  } catch (_) { /* silent – bridge may be starting */ }
+}
+
+async function saveConfig() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+
+  const payload = {
+    serial_port:      document.getElementById('serial_port').value.trim(),
+    baud_rate:        parseInt(document.getElementById('baud_rate').value, 10),
+    mqtt_broker:      document.getElementById('mqtt_broker').value.trim(),
+    mqtt_topic_prefix: document.getElementById('mqtt_topic_prefix').value.trim(),
+    mqtt_user:        document.getElementById('mqtt_user').value.trim(),
+    mqtt_pass:        document.getElementById('mqtt_pass').value, // empty = keep existing
+    mqtt_retain:      document.getElementById('mqtt_retain').checked,
+    mqtt_qos:         parseInt(document.getElementById('mqtt_qos').value, 10),
+    publish_interval: document.getElementById('publish_interval').value.trim(),
+    log_level:        document.getElementById('log_level').value,
+    log_format:       document.getElementById('log_format').value,
+  };
+
+  try {
+    const r = await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const msg = await r.text();
+      showFeedback(msg.trim(), true);
+      return;
+    }
+    showFeedback('Saved.', false);
+    originalConfig = { ...originalConfig, ...payload };
+    checkReconnectNotice(payload);
+  } catch (e) {
+    showFeedback('Request failed: ' + e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function checkReconnectNotice(payload) {
+  if (!originalConfig) return;
+  const changed = RECONNECT_FIELDS.some(f => {
+    const key = f;
+    return String(payload[key] ?? '') !== String(originalConfig[key] ?? '');
+  });
+  const notice = document.getElementById('restart-notice');
+  notice.className = 'restart-notice' + (changed ? ' show' : '');
+}
+
+function showFeedback(msg, isErr) {
+  const el = document.getElementById('feedback');
+  el.textContent = msg;
+  el.className = 'feedback ' + (isErr ? 'err' : 'ok');
+  setTimeout(() => { el.className = 'feedback hide'; }, 4000);
+}
+
+function formatRelative(date) {
+  const secs = Math.round((Date.now() - date.getTime()) / 1000);
+  if (secs < 5)  return 'just now';
+  if (secs < 60) return secs + 's ago';
+  if (secs < 3600) return Math.round(secs / 60) + 'm ago';
+  return Math.round(secs / 3600) + 'h ago';
+}
+
+function formatUptime(secs) {
+  if (secs < 60)   return secs + 's';
+  if (secs < 3600) return Math.floor(secs / 60) + 'm ' + (secs % 60) + 's';
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  return h + 'h ' + m + 'm';
+}
+
+// Init
+loadConfig();
+loadStatus();
+setInterval(loadStatus, 10000);
+</script>
+</body>
+</html>

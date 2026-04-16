@@ -23,15 +23,17 @@ type Payload struct {
 }
 
 // Client wraps paho.mqtt with structured logging and reconnect handling.
-// paho handles reconnect automatically; this wrapper adds logging hooks.
+// Connection parameters are fixed at construction time; publish parameters
+// (topic prefix, QoS, retain) are read live from the store on each publish.
 type Client struct {
-	cfg    *config.Config
-	inner  paho.Client
-	log    *slog.Logger
+	store *config.Store
+	inner paho.Client
+	log   *slog.Logger
 }
 
-func New(cfg *config.Config, log *slog.Logger) *Client {
-	c := &Client{cfg: cfg, log: log}
+func New(store *config.Store, log *slog.Logger) *Client {
+	cfg := store.Get()
+	c := &Client{store: store, log: log}
 
 	opts := paho.NewClientOptions().
 		AddBroker(cfg.MQTTBroker).
@@ -73,13 +75,21 @@ func (c *Client) Connect(_ context.Context) error {
 	return nil
 }
 
+// IsConnected reports whether the client has an active broker connection.
+func (c *Client) IsConnected() bool {
+	return c.inner.IsConnected()
+}
+
 // Publish serialises telemetry and sends it to
 // <prefix>/<SRC_HEX_ADDR> (e.g. vbus/7112).
+// Topic prefix, QoS, and retain are read live from the store.
 func (c *Client) Publish(src uint16, device string, fields []vbus.TelemetryField) error {
 	if !c.inner.IsConnected() {
 		c.log.Debug("mqtt not connected, skipping publish")
 		return nil
 	}
+
+	cfg := c.store.Get()
 
 	p := Payload{
 		Device:    device,
@@ -103,8 +113,8 @@ func (c *Client) Publish(src uint16, device string, fields []vbus.TelemetryField
 		return fmt.Errorf("marshal payload: %w", err)
 	}
 
-	topic := fmt.Sprintf("%s/%04X", c.cfg.MQTTTopicPrefix, src)
-	token := c.inner.Publish(topic, c.cfg.MQTTQOS, c.cfg.MQTTRetain, data)
+	topic := fmt.Sprintf("%s/%04X", cfg.MQTTTopicPrefix, src)
+	token := c.inner.Publish(topic, cfg.MQTTQOS, cfg.MQTTRetain, data)
 	if !token.WaitTimeout(5 * time.Second) {
 		return fmt.Errorf("mqtt publish timeout on topic %s", topic)
 	}
