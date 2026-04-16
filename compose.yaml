@@ -6,7 +6,8 @@
 #   docker compose up -d
 #
 # Multi-arch build:
-#   docker buildx build --platform linux/amd64,linux/arm64 -t vbus2mqtt .
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     --build-arg VERSION=$(git describe --tags --always) -t vbus2mqtt .
 
 services:
 
@@ -14,10 +15,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
     image: vbus2mqtt:latest
     container_name: vbus2mqtt
     restart: unless-stopped
     env_file: .env
+    ports:
+      - "8080:8080"   # web UI / settings
     # USB serial device access
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
@@ -26,6 +31,8 @@ services:
     privileged: true
     # VBus bridge only needs outbound TCP to the MQTT broker
     network_mode: host
+    volumes:
+      - vbus2mqtt_data:/data   # persists config changes made via the web UI
     logging:
       driver: json-file
       options:
@@ -47,5 +54,6 @@ services:
       - mosquitto_log:/mosquitto/log
 
 volumes:
+  vbus2mqtt_data:
   mosquitto_data:
   mosquitto_log:

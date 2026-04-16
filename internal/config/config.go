@@ -24,6 +24,10 @@ type Config struct {
 	PublishInterval time.Duration // PUBLISH_INTERVAL – default 30s
 	LogLevel        string        // LOG_LEVEL  – debug|info|warn|error, default info
 	LogFormat       string        // LOG_FORMAT – json|text, default json
+
+	// Web UI
+	WebAddr    string // WEB_ADDR    – HTTP listen address, default :8080
+	ConfigFile string // CONFIG_FILE – persistence path, default /data/config.json
 }
 
 func Load() *Config {
@@ -39,6 +43,8 @@ func Load() *Config {
 		PublishInterval: envDuration("PUBLISH_INTERVAL", 30*time.Second),
 		LogLevel:        env("LOG_LEVEL", "info"),
 		LogFormat:       env("LOG_FORMAT", "json"),
+		WebAddr:         env("WEB_ADDR", ":8080"),
+		ConfigFile:      env("CONFIG_FILE", "/data/config.json"),
 	}
 }
 

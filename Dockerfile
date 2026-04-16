@@ -5,6 +5,7 @@ FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23-alpine AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG VERSION=dev
 
 WORKDIR /src
 
@@ -15,24 +16,29 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -ldflags="-s -w" -trimpath \
+    go build -ldflags="-s -w -X main.version=${VERSION}" -trimpath \
     -o /bin/vbus2mqtt ./cmd/vbus2mqtt
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM docker.io/library/alpine:3.21
 
 LABEL org.opencontainers.image.title="vbus2mqtt" \
-      org.opencontainers.image.description="RESOL VBus (USB serial) → MQTT bridge" \
-      org.opencontainers.image.source="https://git.zk35.de/secalpha/vbus2mqtt"
+      org.opencontainers.image.description="RESOL VBus (USB serial) → MQTT bridge with web UI" \
+      org.opencontainers.image.source="https://github.com/zk35-de/vbus2mqtt"
 
 # dialout group (GID 20 on Alpine) for serial port access.
-# The container typically runs with privileged:true, but adding the group
-# makes it work in rootless environments too.
 RUN addgroup -g 20 dialout 2>/dev/null || true && \
     adduser -u 1000 -G dialout -s /sbin/nologin -D vbus
+
+# Persistent config storage; owner vbus so the process can write.
+RUN mkdir -p /data && chown vbus:dialout /data
 
 USER vbus
 
 COPY --from=builder /bin/vbus2mqtt /bin/vbus2mqtt
+
+EXPOSE 8080
+
+VOLUME ["/data"]
 
 ENTRYPOINT ["/bin/vbus2mqtt"]
