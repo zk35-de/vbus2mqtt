@@ -24,7 +24,7 @@ FROM alpine:3.21
 
 LABEL org.opencontainers.image.title="vbus2mqtt" \
       org.opencontainers.image.description="RESOL VBus (USB serial) → MQTT bridge with web UI" \
-      org.opencontainers.image.source="https://github.com/zk35-de/vbus2mqtt"
+      org.opencontainers.image.source="https://git.zk35.de/secalpha/vbus2mqtt"
 
 # dialout group (GID 20 on Alpine) for serial port access.
 RUN addgroup -g 20 dialout 2>/dev/null || true && \
