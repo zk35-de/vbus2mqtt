@@ -65,7 +65,7 @@ Add new devices in `internal/vbus/registry.go`.
 ## Quickstart
 
 ```bash
-git clone https://github.com/zk35-de/vbus2mqtt
+git clone https://git.zk35.de/secalpha/vbus2mqtt
 cd vbus2mqtt
 
 cp .env.example .env
