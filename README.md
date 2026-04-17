@@ -64,6 +64,10 @@ used for devices where the spec disagrees with the actual hardware payload layou
 |---------------------|----------|-----------------------------------------------|
 | DeltaSol BS2        | `0x4278` | Cosmo Multi DrainBack variant, live-captured  |
 
+> **Known limitation (DeltaSol BS2):** `operating_hours_1` and `operating_hours_2` always read 0.
+> The offset in `registry_custom.go` likely doesn't match this hardware variant.
+> All other fields are validated and correct.
+
 To regenerate the registry after updating the VSF:
 
 ```bash
