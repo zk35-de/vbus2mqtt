@@ -175,6 +175,49 @@ To reset to env-var defaults, delete the file and restart.
 
 ---
 
+## Production deployment (auto-start after reboot)
+
+`restart: unless-stopped` alone is not enough — after a reboot nobody calls `podman compose up`.
+The reliable solution is a systemd user service combined with `loginctl enable-linger`.
+
+```bash
+# 1. Allow the user slice to survive without an active SSH session (run once as root)
+sudo loginctl enable-linger <your-user>
+
+# 2. Create the systemd user service
+mkdir -p ~/.config/systemd/user
+
+cat > ~/.config/systemd/user/vbus2mqtt.service << 'EOF'
+[Unit]
+Description=vbus2mqtt
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/stack/vbus2mqtt
+ExecStart=/usr/bin/podman compose up -d
+ExecStop=/usr/bin/podman compose down
+
+[Install]
+WantedBy=default.target
+EOF
+
+# 3. Enable and start
+systemctl --user daemon-reload
+systemctl --user enable --now vbus2mqtt
+```
+
+After this the container survives SSH logout and starts automatically after every reboot.
+
+```bash
+# Useful commands
+systemctl --user status vbus2mqtt
+journalctl --user -u vbus2mqtt -f
+```
+
+---
+
 ## Home Assistant Autodiscovery
 
 Set `MQTT_HA_DISCOVERY=true` to enable [MQTT Autodiscovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
