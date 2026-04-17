@@ -126,6 +126,7 @@ func (c *Client) Publish(src uint16, device string, fields []vbus.TelemetryField
 		"topic", topic,
 		"device", device,
 		"fields", len(fields),
+		"values", p.Fields,
 	)
 	return nil
 }
