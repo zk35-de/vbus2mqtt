@@ -28,8 +28,10 @@ services:
     # USB serial device access
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
-    # privileged gives full access to all /dev devices; use when the device
-    # path is unknown or changes between reboots (udev rules recommended instead)
+    # privileged: true is a fallback for unknown/changing device paths.
+    # Recommended: add a udev rule for a stable symlink and remove privileged:
+    #   SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyVBUS"
+    # then set devices: [/dev/ttyVBUS:/dev/ttyUSB0] and drop privileged.
     privileged: true
     volumes:
       - vbus2mqtt_data:/data   # persists config changes made via the web UI

@@ -232,3 +232,13 @@ sudo chmod a+rw /dev/ttyUSB0    # temporary
 The source address matched a different device in the registry.
 Run with `LOG_LEVEL=debug` and check the actual `src=` address in log output,
 then verify the field offsets in `registry_custom.go`.
+
+---
+
+## Credits
+
+Device registry generated from the
+[RESOL VBus Specification](https://github.com/danielwippermann/resol-vbus/tree/master/src/specification)
+by [Daniel Wippermann](https://github.com/danielwippermann), licensed under MIT.
+
+The `tools/vbus_specification.vsf` binary is sourced from that project.

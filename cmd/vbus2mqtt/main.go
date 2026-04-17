@@ -12,12 +12,12 @@ import (
 
 	goserial "go.bug.st/serial"
 
-	"git.zk35.de/secalpha/vbus2mqtt/internal/config"
-	"git.zk35.de/secalpha/vbus2mqtt/internal/device"
-	mqttclient "git.zk35.de/secalpha/vbus2mqtt/internal/mqtt"
-	"git.zk35.de/secalpha/vbus2mqtt/internal/status"
-	"git.zk35.de/secalpha/vbus2mqtt/internal/vbus"
-	"git.zk35.de/secalpha/vbus2mqtt/internal/web"
+	"github.com/zk35-de/vbus2mqtt/internal/config"
+	"github.com/zk35-de/vbus2mqtt/internal/device"
+	mqttclient "github.com/zk35-de/vbus2mqtt/internal/mqtt"
+	"github.com/zk35-de/vbus2mqtt/internal/status"
+	"github.com/zk35-de/vbus2mqtt/internal/vbus"
+	"github.com/zk35-de/vbus2mqtt/internal/web"
 )
 
 // version is set at build time via -ldflags "-X main.version=<tag>".

@@ -9,8 +9,8 @@ import (
 
 	paho "github.com/eclipse/paho.mqtt.golang"
 
-	"git.zk35.de/secalpha/vbus2mqtt/internal/config"
-	"git.zk35.de/secalpha/vbus2mqtt/internal/vbus"
+	"github.com/zk35-de/vbus2mqtt/internal/config"
+	"github.com/zk35-de/vbus2mqtt/internal/vbus"
 )
 
 // Payload is the JSON structure published to MQTT.

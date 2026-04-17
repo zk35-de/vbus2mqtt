@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"git.zk35.de/secalpha/vbus2mqtt/internal/config"
+	"github.com/zk35-de/vbus2mqtt/internal/config"
 )
 
 // dynamicHandler delegates to json or text handler based on the current store
