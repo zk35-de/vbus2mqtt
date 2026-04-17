@@ -7,6 +7,8 @@ and exposes a settings web UI at `:8080` for runtime configuration without resta
 
 Written in Go. Runs as a rootless Podman/Docker container. Multi-arch (amd64 · arm64 · armv7).
 
+![vbus2mqtt web UI](docs/screenshot.png)
+
 ---
 
 ## Web UI
