@@ -147,6 +147,8 @@ Environment variables set the initial defaults.
 | `MQTT_PASS`        |                          | MQTT password (optional)                 |
 | `MQTT_QOS`         | `0`                      | MQTT QoS level (0/1/2)                   |
 | `MQTT_RETAIN`      | `true`                   | Retain last message on broker            |
+| `MQTT_HA_DISCOVERY`| `false`                  | Enable Home Assistant MQTT Autodiscovery |
+| `MQTT_HA_DISCOVERY_PREFIX` | `homeassistant` | Discovery topic prefix               |
 | `PUBLISH_INTERVAL` | `30s`                    | How often to push telemetry              |
 | `LOG_LEVEL`        | `info`                   | `debug` \| `info` \| `warn` \| `error`  |
 | `LOG_FORMAT`       | `json`                   | `json` \| `text`                         |
@@ -170,6 +172,38 @@ volumes:
 
 The file-based config takes precedence over environment variables.
 To reset to env-var defaults, delete the file and restart.
+
+---
+
+## Home Assistant Autodiscovery
+
+Set `MQTT_HA_DISCOVERY=true` to enable [MQTT Autodiscovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
+vbus2mqtt will publish a discovery config for each sensor field the first time it sends telemetry,
+and again after every reconnect so HA always has up-to-date metadata.
+
+Discovery topics follow the HA convention:
+
+```
+homeassistant/sensor/vbus2mqtt_<src>_<field>/config
+```
+
+Each sensor in HA gets the correct `device_class` and `state_class` derived from its unit:
+
+| Unit      | device_class        | state_class        |
+|-----------|---------------------|--------------------|
+| `°C`, `K` | `temperature`       | `measurement`      |
+| `W`, `kW` | `power`             | `measurement`      |
+| `Wh`, `kWh` | `energy`          | `total_increasing` |
+| `V`       | `voltage`           | `measurement`      |
+| `bar`     | `pressure`          | `measurement`      |
+| `l/h`     | `volume_flow_rate`  | `measurement`      |
+| other     | *(none)*            | `measurement`      |
+
+All sensors for one VBus device are grouped under a single HA device entry
+(e.g. "DeltaSol BS2") identified by `vbus2mqtt_<src_hex>`.
+
+The existing telemetry topic structure (`vbus/<src_hex>`) is unchanged —
+autodiscovery is purely additive.
 
 ---
 
