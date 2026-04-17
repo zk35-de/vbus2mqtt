@@ -92,7 +92,7 @@ podman run -d \
   -e MQTT_PASS=secret \
   -v vbus2mqtt_data:/data \
   --name vbus2mqtt \
-  git.zk35.de/secalpha/vbus2mqtt:latest
+  ghcr.io/zk35-de/vbus2mqtt:latest
 ```
 
 Or with compose:
