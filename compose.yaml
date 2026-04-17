@@ -21,16 +21,16 @@ services:
     container_name: vbus2mqtt
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "8080:8080"   # web UI / settings
+    # network_mode: host → ports mapping has no effect and is omitted.
+    # Web UI is reachable at http://<host-ip>:8080 directly via the host stack.
+    # Set MQTT_BROKER=tcp://localhost:1883 in .env to reach a local broker.
+    network_mode: host
     # USB serial device access
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     # privileged gives full access to all /dev devices; use when the device
     # path is unknown or changes between reboots (udev rules recommended instead)
     privileged: true
-    # VBus bridge only needs outbound TCP to the MQTT broker
-    network_mode: host
     volumes:
       - vbus2mqtt_data:/data   # persists config changes made via the web UI
     logging:

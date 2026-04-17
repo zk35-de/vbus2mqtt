@@ -3,6 +3,7 @@ package web
 
 import (
 	"context"
+	"crypto/subtle"
 	_ "embed"
 	"encoding/json"
 	"log/slog"
@@ -38,20 +39,48 @@ type Server struct {
 	status  *status.Status
 	version string
 	log     *slog.Logger
+	webUser string
+	webPass string
 }
 
 func New(store *config.Store, st *status.Status, version string, log *slog.Logger) *Server {
-	return &Server{store: store, status: st, version: version, log: log}
+	cfg := store.Get()
+	return &Server{
+		store:   store,
+		status:  st,
+		version: version,
+		log:     log,
+		webUser: cfg.WebUser,
+		webPass: cfg.WebPass,
+	}
+}
+
+// basicAuth wraps h with HTTP Basic Auth. /health is always excluded.
+func (s *Server) basicAuth(h http.HandlerFunc) http.HandlerFunc {
+	if s.webUser == "" {
+		return h
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		userMatch := subtle.ConstantTimeCompare([]byte(u), []byte(s.webUser)) == 1
+		passMatch := subtle.ConstantTimeCompare([]byte(p), []byte(s.webPass)) == 1
+		if !ok || !userMatch || !passMatch {
+			w.Header().Set("WWW-Authenticate", `Basic realm="vbus2mqtt"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		h(w, r)
+	}
 }
 
 // Start runs the HTTP server until ctx is cancelled.
 func (s *Server) Start(ctx context.Context, addr string) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", s.handleUI)
-	mux.HandleFunc("GET /health", s.handleHealth)
-	mux.HandleFunc("GET /api/config", s.handleGetConfig)
-	mux.HandleFunc("PUT /api/config", s.handlePutConfig)
-	mux.HandleFunc("GET /api/status", s.handleGetStatus)
+	mux.HandleFunc("GET /{$}", s.basicAuth(s.handleUI))
+	mux.HandleFunc("GET /health", s.handleHealth) // always public – used by HEALTHCHECK
+	mux.HandleFunc("GET /api/config", s.basicAuth(s.handleGetConfig))
+	mux.HandleFunc("PUT /api/config", s.basicAuth(s.handlePutConfig))
+	mux.HandleFunc("GET /api/status", s.basicAuth(s.handleGetStatus))
 
 	srv := &http.Server{
 		Addr:         addr,

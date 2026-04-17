@@ -27,6 +27,8 @@ type Config struct {
 
 	// Web UI
 	WebAddr    string // WEB_ADDR    – HTTP listen address, default :8080
+	WebUser    string // WEB_USER    – basic auth username; empty = no auth
+	WebPass    string // WEB_PASS    – basic auth password
 	ConfigFile string // CONFIG_FILE – persistence path, default /data/config.json
 }
 
@@ -44,6 +46,8 @@ func Load() *Config {
 		LogLevel:        env("LOG_LEVEL", "info"),
 		LogFormat:       env("LOG_FORMAT", "json"),
 		WebAddr:         env("WEB_ADDR", ":8080"),
+		WebUser:         env("WEB_USER", ""),
+		WebPass:         env("WEB_PASS", ""),
 		ConfigFile:      env("CONFIG_FILE", "/data/config.json"),
 	}
 }

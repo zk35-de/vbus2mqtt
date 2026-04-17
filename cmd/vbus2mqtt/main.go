@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -33,7 +32,7 @@ func main() {
 	cfg := store.Get()
 
 	var logLevel slog.LevelVar
-	log := buildLogger(cfg, &logLevel)
+	log := buildLogger(store, &logLevel)
 	slog.SetDefault(log)
 
 	log.Info("vbus2mqtt starting",
@@ -192,13 +191,9 @@ func readLoop(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-func buildLogger(cfg config.Config, lv *slog.LevelVar) *slog.Logger {
-	setLogLevel(lv, cfg.LogLevel)
-	opts := &slog.HandlerOptions{Level: lv}
-	if cfg.LogFormat == "text" {
-		return slog.New(slog.NewTextHandler(os.Stdout, opts))
-	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+func buildLogger(store *config.Store, lv *slog.LevelVar) *slog.Logger {
+	setLogLevel(lv, store.Get().LogLevel)
+	return slog.New(newDynamicHandler(store, lv))
 }
 
 func setLogLevel(lv *slog.LevelVar, level string) {

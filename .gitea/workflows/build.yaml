@@ -6,7 +6,18 @@ on:
     tags: ["v*"]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run tests
+        run: go test ./...
+
   build:
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -15,25 +26,37 @@ jobs:
       - name: Register QEMU for multi-arch builds
         run: podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
 
+      - name: Set build tag
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=edge" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build linux/amd64
         run: |
           podman build --platform linux/amd64 \
-            -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-amd64 .
+            --build-arg VERSION=${{ steps.tag.outputs.value }} \
+            -t git.zk35.de/secalpha/vbus2mqtt:${{ steps.tag.outputs.value }}-amd64 .
 
       - name: Build linux/arm/v7 (RPi 3B, 32-bit OS)
         run: |
           podman build --platform linux/arm/v7 \
-            -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-armv7 .
+            --build-arg VERSION=${{ steps.tag.outputs.value }} \
+            -t git.zk35.de/secalpha/vbus2mqtt:${{ steps.tag.outputs.value }}-armv7 .
 
       - name: Build linux/arm64 (RPi 3B/4/5, 64-bit OS)
         run: |
           podman build --platform linux/arm64 \
-            -t git.zk35.de/secalpha/vbus2mqtt:${{ github.ref_name }}-arm64 .
+            --build-arg VERSION=${{ steps.tag.outputs.value }} \
+            -t git.zk35.de/secalpha/vbus2mqtt:${{ steps.tag.outputs.value }}-arm64 .
 
       - name: Login and push multi-arch manifest
         env:
           GITEA_TOKEN: ${{ secrets.VBUS2MQTTCI }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.tag.outputs.value }}
           IMAGE: git.zk35.de/secalpha/vbus2mqtt
         run: |
           podman login git.zk35.de -u secalpha -p ${GITEA_TOKEN}
@@ -49,9 +72,12 @@ jobs:
             ${IMAGE}:${TAG}-arm64
           podman manifest push ${IMAGE}:${TAG}
 
-          podman manifest rm ${IMAGE}:latest 2>/dev/null || podman rmi ${IMAGE}:latest 2>/dev/null || true
-          podman manifest create ${IMAGE}:latest \
-            ${IMAGE}:${TAG}-amd64 \
-            ${IMAGE}:${TAG}-armv7 \
-            ${IMAGE}:${TAG}-arm64
-          podman manifest push ${IMAGE}:latest
+          # :latest only on version tags – main-push gets :edge
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            podman manifest rm ${IMAGE}:latest 2>/dev/null || podman rmi ${IMAGE}:latest 2>/dev/null || true
+            podman manifest create ${IMAGE}:latest \
+              ${IMAGE}:${TAG}-amd64 \
+              ${IMAGE}:${TAG}-armv7 \
+              ${IMAGE}:${TAG}-arm64
+            podman manifest push ${IMAGE}:latest
+          fi
