@@ -275,6 +275,28 @@ podman run --device /dev/serial/by-id/usb-...-if00:/dev/ttyUSB0 \
            --group-add keep-groups ...
 ```
 
+### Rootless Podman: Permission denied on serial device
+
+Without `privileged: true`, the container user has no access to the serial device by default.
+Fix: add the host user to `dialout` and use `group_add: keep-groups` in compose.
+
+```bash
+# Add host user to dialout group (once), then re-login
+sudo usermod -aG dialout <your-user>
+```
+
+In `compose.yml` — **no** `privileged: true`, instead:
+
+```yaml
+devices:
+  - /dev/serial/by-id/usb-<your-id>:/dev/ttyUSB0
+group_add:
+  - keep-groups   # passes host supplementary groups (incl. dialout) into the container
+```
+
+`keep-groups` is Podman-specific. It is the correct replacement for `privileged: true`
+when the only requirement is serial device access.
+
 Add a udev rule for a stable device path:
 
 ```
