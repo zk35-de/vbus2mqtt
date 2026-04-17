@@ -25,6 +25,10 @@ type Config struct {
 	LogLevel        string        // LOG_LEVEL  – debug|info|warn|error, default info
 	LogFormat       string        // LOG_FORMAT – json|text, default json
 
+	// HA MQTT Autodiscovery
+	MQTTHADiscovery       bool   // MQTT_HA_DISCOVERY        – default false
+	MQTTHADiscoveryPrefix string // MQTT_HA_DISCOVERY_PREFIX – default homeassistant
+
 	// Web UI
 	WebAddr    string // WEB_ADDR    – HTTP listen address, default :8080
 	WebUser    string // WEB_USER    – basic auth username; empty = no auth
@@ -42,6 +46,8 @@ func Load() *Config {
 		MQTTPass:        env("MQTT_PASS", ""),
 		MQTTRetain:      envBool("MQTT_RETAIN", true),
 		MQTTQOS:         byte(envInt("MQTT_QOS", 0)),
+		MQTTHADiscovery:       envBool("MQTT_HA_DISCOVERY", false),
+		MQTTHADiscoveryPrefix: env("MQTT_HA_DISCOVERY_PREFIX", "homeassistant"),
 		PublishInterval: envDuration("PUBLISH_INTERVAL", 30*time.Second),
 		LogLevel:        env("LOG_LEVEL", "info"),
 		LogFormat:       env("LOG_FORMAT", "json"),
