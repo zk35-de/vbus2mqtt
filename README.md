@@ -5,7 +5,7 @@ RESOL VBus (USB serial adapter) → MQTT bridge with web UI.
 Reads the VBus data stream from a solar controller, publishes JSON telemetry to MQTT,
 and exposes a settings web UI at `:8080` for runtime configuration without restarts.
 
-Written in Go. Runs as a rootless Docker/Podman container. Multi-arch (amd64 + arm64).
+Written in Go. Runs as a rootless Podman/Docker container. Multi-arch (amd64 · arm64 · armv7).
 
 ---
 
@@ -18,6 +18,7 @@ Open `http://<host>:8080` after startup.
 - Settings are persisted to `/data/config.json` and survive container restarts
 - MQTT broker / credentials / serial port changes trigger an automatic reconnect
 - Log level changes take effect within one second (no reconnect needed)
+- Optional HTTP Basic Auth via `WEB_USER` / `WEB_PASS` env vars
 
 ---
 
@@ -25,57 +26,78 @@ Open `http://<host>:8080` after startup.
 
 Topic: `<MQTT_TOPIC_PREFIX>/<SOURCE_ADDR_HEX>`
 
-Example for a DeltaSol BS (source address `0x7112`):
+Example for a DeltaSol BS2 (source address `0x4278`):
 
 ```
-Topic:   vbus/7112
+Topic:   vbus/4278
 Payload: {
-  "device":    "DeltaSol BS",
-  "source":    "0x7112",
+  "device":    "DeltaSol BS2",
+  "source":    "0x4278",
   "timestamp": 1713180000,
   "fields": {
-    "temp_sensor1":    67.3,
-    "temp_sensor2":    22.1,
-    "pump_speed":      100,
-    "operating_hours": 1234,
-    "error_mask":      0
+    "temp_sensor1":      67.3,
+    "temp_sensor2":      22.1,
+    "pump_speed_1":      100,
+    "operating_hours_1": 1234,
+    "error_mask":        0
   },
   "units": {
-    "temp_sensor1":    "°C",
-    "temp_sensor2":    "°C",
-    "pump_speed":      "%",
-    "operating_hours": "h"
+    "temp_sensor1":      "°C",
+    "temp_sensor2":      "°C",
+    "pump_speed_1":      "%",
+    "operating_hours_1": "h"
   }
 }
 ```
 
 ## Supported controllers
 
-| Device             | Source   | Destination | Command  |
-|--------------------|----------|-------------|----------|
-| DeltaSol BS        | `0x7112` | `0x0010`    | `0x0100` |
-| DeltaSol BS Plus   | `0x7110` | `0x0010`    | `0x0100` |
-| DeltaSol C         | `0x7111` | `0x0010`    | `0x0100` |
+The device registry is generated from the [Resol VBus Specification](https://github.com/danielwippermann/resol-vbus)
+and covers **360+ Resol/RESOL/Solarfocus devices** (any broadcast packet with dst=0x0010, cmd=0x0100).
+
+Custom overrides in `internal/vbus/registry_custom.go` take precedence over the generated entries —
+used for devices where the spec disagrees with the actual hardware payload layout.
+
+**Currently custom-defined:**
+
+| Device              | Source   | Note                                          |
+|---------------------|----------|-----------------------------------------------|
+| DeltaSol BS2        | `0x4278` | Cosmo Multi DrainBack variant, live-captured  |
+
+To regenerate the registry after updating the VSF:
+
+```bash
+go generate ./internal/vbus/...
+```
 
 Unknown devices are logged at DEBUG level with their raw payload hex.
-Add new devices in `internal/vbus/registry.go`.
+Add new custom devices in `internal/vbus/registry_custom.go`.
 
 ---
 
 ## Quickstart
 
 ```bash
-git clone https://git.zk35.de/secalpha/vbus2mqtt
-cd vbus2mqtt
+podman run -d \
+  --device /dev/serial/by-id/usb-<your-adapter>:/dev/ttyUSB0 \
+  --group-add keep-groups \
+  -e MQTT_BROKER=tcp://192.168.1.10:1883 \
+  -e MQTT_USER=mqttuser \
+  -e MQTT_PASS=secret \
+  -v vbus2mqtt_data:/data \
+  --name vbus2mqtt \
+  git.zk35.de/secalpha/vbus2mqtt:latest
+```
 
+Or with compose:
+
+```bash
 cp .env.example .env
 $EDITOR .env        # set MQTT_BROKER at minimum
-
-docker compose up -d vbus2mqtt   # omit mosquitto if you have a broker
-docker logs -f vbus2mqtt
-
-# Open http://localhost:8080 for the settings UI
+podman compose up -d
 ```
+
+Open `http://localhost:8080` for the settings UI.
 
 ## Build
 
@@ -86,20 +108,20 @@ go build -ldflags "-X main.version=$(git describe --tags --always)" \
   -o vbus2mqtt ./cmd/vbus2mqtt
 ```
 
-### Docker single-arch
+### Container single-arch
 
 ```bash
-docker build --build-arg VERSION=$(git describe --tags --always) -t vbus2mqtt .
+podman build --build-arg VERSION=$(git describe --tags --always) -t vbus2mqtt .
 ```
 
-### Multi-arch with buildx
+### Multi-arch (CI uses podman buildx)
 
 ```bash
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
+podman build --platform linux/amd64,linux/arm64,linux/arm/v7 \
   --build-arg VERSION=$(git describe --tags --always) \
   -t registry.example.com/vbus2mqtt:latest \
-  --push .
+  --manifest vbus2mqtt-multi .
+podman manifest push vbus2mqtt-multi registry.example.com/vbus2mqtt:latest
 ```
 
 ---
@@ -123,12 +145,17 @@ Environment variables set the initial defaults.
 | `LOG_LEVEL`        | `info`                   | `debug` \| `info` \| `warn` \| `error`  |
 | `LOG_FORMAT`       | `json`                   | `json` \| `text`                         |
 | `WEB_ADDR`         | `:8080`                  | HTTP listen address for the web UI       |
+| `WEB_USER`         |                          | HTTP Basic Auth username (optional)      |
+| `WEB_PASS`         |                          | HTTP Basic Auth password (optional)      |
 | `CONFIG_FILE`      | `/data/config.json`      | Persistence path for web UI changes      |
+
+Both `WEB_USER` and `WEB_PASS` must be set to enable Basic Auth.
+The `/health` endpoint is always public regardless of auth config.
 
 ### Config persistence
 
 Settings saved via the web UI are written atomically to `CONFIG_FILE`.
-Mount `/data` as a Docker volume so changes survive container restarts:
+Mount `/data` as a volume so changes survive container restarts:
 
 ```yaml
 volumes:
@@ -145,7 +172,7 @@ To reset to env-var defaults, delete the file and restart.
 | Method | Path         | Description                          |
 |--------|--------------|--------------------------------------|
 | `GET`  | `/`          | Settings web UI                      |
-| `GET`  | `/health`    | `{"status":"ok","version":"..."}` |
+| `GET`  | `/health`    | `{"status":"ok","version":"..."}` (always public) |
 | `GET`  | `/api/config`| Current config (password redacted)   |
 | `PUT`  | `/api/config`| Update config (JSON body)            |
 | `GET`  | `/api/status`| Runtime status (MQTT, devices, etc.) |
@@ -157,50 +184,47 @@ To reset to env-var defaults, delete the file and restart.
 ```bash
 # Check device node:
 ls -la /dev/ttyUSB* /dev/ttyACM*
+# Prefer the stable symlink:
+ls /dev/serial/by-id/
 
-# Add your user to the dialout group (once, then re-login):
-sudo usermod -aG dialout $USER
-
-# Verify with minicom:
-minicom -D /dev/ttyUSB0 -b 9600
-# You should see garbled binary data from the VBus stream.
+# Rootless Podman — pass the device and group:
+podman run --device /dev/serial/by-id/usb-...-if00:/dev/ttyUSB0 \
+           --group-add keep-groups ...
 ```
 
-On **Raspberry Pi** the adapter is usually `/dev/ttyUSB0`.
-If you use a USB hub, the path may change after reboot – add a udev rule:
+Add a udev rule for a stable device path:
 
 ```
 # /etc/udev/rules.d/99-vbus.rules
 SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyVBUS"
 ```
 
-Then set `SERIAL_PORT=/dev/ttyVBUS`.
+Then use `--device /dev/ttyVBUS:/dev/ttyUSB0` or set `SERIAL_PORT=/dev/ttyVBUS`.
 
 ---
 
 ## Troubleshooting
 
 **Device not detected**
-```
-docker logs vbus2mqtt | grep "serial"
-# → try setting SERIAL_PORT explicitly via the web UI or .env
+```bash
+podman logs vbus2mqtt | grep serial
+# → set SERIAL_PORT explicitly via web UI or env var
 ```
 
 **Unknown device / no telemetry**
 ```bash
-# Enable debug logging via web UI, or:
-LOG_LEVEL=debug docker compose up vbus2mqtt
-# Look for: "unknown vbus device" src=0xXXXX payload_hex=...
-# Add the source address + field offsets to internal/vbus/registry.go
+# Enable debug logging via web UI, then:
+podman logs vbus2mqtt | grep "unknown vbus device"
+# → note the src= address and add it to internal/vbus/registry_custom.go
 ```
 
 **Permission denied on /dev/ttyUSB0**
 ```bash
 sudo chmod a+rw /dev/ttyUSB0    # temporary
-# or: add user to dialout group (permanent)
+# or: pass --group-add keep-groups with rootless Podman
 ```
 
 **Wrong temperatures (e.g. 6553.5°C)**
-The source address doesn't match any registry entry, so a different device's
-fields are decoded. Run with `LOG_LEVEL=debug` and check the actual source
-address in the log output.
+The source address matched a different device in the registry.
+Run with `LOG_LEVEL=debug` and check the actual `src=` address in log output,
+then verify the field offsets in `registry_custom.go`.

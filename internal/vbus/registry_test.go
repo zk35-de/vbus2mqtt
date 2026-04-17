@@ -14,30 +14,27 @@ func buildPayload(fields map[int]int16, size int) []byte {
 }
 
 func TestDecode_KnownDevice(t *testing.T) {
-	// DeltaSol BS: src=0x7112, dst=0x0010, cmd=0x0100
-	// temp_sensor1 @ offset 0 (Int16, factor 0.1) → 250 raw = 25.0°C
-	p := make([]byte, 16)
-	binary.LittleEndian.PutUint16(p[0:], 250) // temp_sensor1
-	binary.LittleEndian.PutUint16(p[2:], 350) // temp_sensor2
+	// 0x7112 is in the generated Wippermann registry.
+	// temperature_sensor_1 @ offset 0 (Int16, factor 0.1) → 250 raw = 25.0°C
+	p := make([]byte, 72) // generated entry has fields up to offset ~68
+	binary.LittleEndian.PutUint16(p[0:], 250) // temperature_sensor_1
+	binary.LittleEndian.PutUint16(p[2:], 350) // temperature_sensor_2
 
 	f := Frame{Source: 0x7112, Destination: 0x0010, Command: 0x0100, Payload: p}
-	name, fields, known := Decode(f, DefaultRegistry)
+	_, fields, known := Decode(f, DefaultRegistry)
 	if !known {
-		t.Fatal("expected DeltaSol BS to be known")
-	}
-	if name != "DeltaSol BS" {
-		t.Errorf("name: got %q, want \"DeltaSol BS\"", name)
+		t.Fatal("expected 0x7112 to be known in generated registry")
 	}
 
 	byName := map[string]float64{}
 	for _, tf := range fields {
 		byName[tf.Name] = tf.Value
 	}
-	if byName["temp_sensor1"] != 25.0 {
-		t.Errorf("temp_sensor1: got %v, want 25.0", byName["temp_sensor1"])
+	if byName["temperature_sensor_1"] != 25.0 {
+		t.Errorf("temperature_sensor_1: got %v, want 25.0", byName["temperature_sensor_1"])
 	}
-	if byName["temp_sensor2"] != 35.0 {
-		t.Errorf("temp_sensor2: got %v, want 35.0", byName["temp_sensor2"])
+	if byName["temperature_sensor_2"] != 35.0 {
+		t.Errorf("temperature_sensor_2: got %v, want 35.0", byName["temperature_sensor_2"])
 	}
 }
 
@@ -50,7 +47,7 @@ func TestDecode_UnknownDevice(t *testing.T) {
 }
 
 func TestDecode_NegativeTemperature(t *testing.T) {
-	p := make([]byte, 16)
+	p := make([]byte, 72)
 	v := int16(-50)
 	binary.LittleEndian.PutUint16(p[0:], uint16(v)) // -5.0°C
 
@@ -58,14 +55,14 @@ func TestDecode_NegativeTemperature(t *testing.T) {
 	_, fields, _ := Decode(f, DefaultRegistry)
 
 	for _, tf := range fields {
-		if tf.Name == "temp_sensor1" {
+		if tf.Name == "temperature_sensor_1" {
 			if tf.Value != -5.0 {
-				t.Errorf("temp_sensor1: got %v, want -5.0", tf.Value)
+				t.Errorf("temperature_sensor_1: got %v, want -5.0", tf.Value)
 			}
 			return
 		}
 	}
-	t.Error("temp_sensor1 not found in fields")
+	t.Error("temperature_sensor_1 not found in fields")
 }
 
 func TestDecode_BS2AllFields(t *testing.T) {

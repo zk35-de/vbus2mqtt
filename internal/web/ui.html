@@ -5,220 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>vbus2mqtt</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* PRISM UI v2.0 – secalpha/prism-ui (tokens + base + components + themes + toast) */
 
-:root {
-  --bg:       #0f172a;
-  --surface:  #1e293b;
-  --surface2: #263044;
-  --border:   #334155;
-  --text:     #e2e8f0;
-  --muted:    #94a3b8;
-  --accent:   #38bdf8;
-  --success:  #4ade80;
-  --error:    #f87171;
-  --warning:  #fb923c;
-  --radius:   6px;
-  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: ui-monospace, "Cascadia Code", "Fira Mono", monospace;
-}
+/* ── Tokens ── */
+:root,[data-theme="dark"]{--bg:#04060f;--bg2:#080c1a;--text:#e8edf5;--sub:#64748b;--accent:#6366f1;--accent-hover:#818cf8;--cyan:#06b6d4;--ok:#22c55e;--warn:#f59e0b;--fehler:#ef4444;--fg:var(--text);--muted:var(--sub);--primary:var(--accent);--surface:rgba(255,255,255,0.04);--surface2:rgba(255,255,255,0.02);--border:rgba(255,255,255,0.1);--glass:rgba(255,255,255,0.04);--glass-h:rgba(255,255,255,0.075);--glass-border:rgba(255,255,255,0.1);--glass-border-a:color-mix(in srgb,var(--accent) 45%,transparent);--card-bg:linear-gradient(135deg,rgba(255,255,255,0.055) 0%,rgba(255,255,255,0.015) 100%);--nav-bg:rgba(4,6,15,0.85);--shadow-card:0 2px 20px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.07);--shadow-btn:0 4px 16px color-mix(in srgb,var(--accent) 28%,transparent),inset 0 1px 0 rgba(255,255,255,0.14);--aurora-color:var(--accent);--mono:'Fira Code','JetBrains Mono','Menlo','Consolas',monospace;--font:var(--mono);--font-body:var(--mono);--font-size-base:13px;--line-height:1.6;--radius-sm:4px;--radius-md:8px;--radius-lg:10px;--radius:10px;--radius-xl:14px;--radius-2xl:16px;color-scheme:dark}
+[data-theme="light"]{--bg:#f0f2f8;--bg2:#e6e9f2;--text:#1a1d2e;--sub:#64748b;--surface:rgba(0,0,0,0.04);--surface2:rgba(0,0,0,0.02);--border:rgba(0,0,0,0.1);--glass:rgba(255,255,255,0.6);--glass-h:rgba(255,255,255,0.8);--glass-border:rgba(0,0,0,0.1);--glass-border-a:color-mix(in srgb,var(--accent) 40%,transparent);--card-bg:linear-gradient(135deg,rgba(255,255,255,0.8) 0%,rgba(255,255,255,0.55) 100%);--nav-bg:rgba(240,242,248,0.88);--shadow-card:0 2px 20px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);--shadow-btn:0 4px 16px color-mix(in srgb,var(--accent) 22%,transparent),inset 0 1px 0 rgba(255,255,255,0.4);color-scheme:light}
+@media(prefers-color-scheme:light){:root:not([data-theme]){--bg:#f0f2f8;--bg2:#e6e9f2;--text:#1a1d2e;--sub:#64748b;--surface:rgba(0,0,0,0.04);--surface2:rgba(0,0,0,0.02);--border:rgba(0,0,0,0.1);--glass:rgba(255,255,255,0.6);--glass-h:rgba(255,255,255,0.8);--glass-border:rgba(0,0,0,0.1);--glass-border-a:color-mix(in srgb,var(--accent) 40%,transparent);--card-bg:linear-gradient(135deg,rgba(255,255,255,0.8) 0%,rgba(255,255,255,0.55) 100%);--shadow-card:0 2px 20px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);color-scheme:light}}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.6;
-  padding: 24px 16px 64px;
-}
+/* ── Themes ── */
+.theme-amber{--accent:#f59e0b;--accent-hover:#fbbf24;--font-body:var(--mono);--aurora-1:color-mix(in srgb,var(--accent) 16%,transparent);--aurora-2:rgba(245,158,11,0.10);--aurora-3:rgba(180,83,9,0.06)}
 
-.container { max-width: 640px; margin: 0 auto; }
+/* ── Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:var(--font-size-base)}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:var(--font-size-base);line-height:var(--line-height);min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h2{font-size:0.75rem;color:var(--sub);font-weight:400;text-transform:uppercase;letter-spacing:0.16em}
 
-/* ── header ── */
-.header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.header h1 {
-  font-size: 20px;
-  font-weight: 700;
-  font-family: var(--mono);
-  color: var(--accent);
-  letter-spacing: -0.5px;
-}
-.badge {
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: var(--surface);
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
+/* ── Card ── */
+.card{position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.055) 0%,rgba(255,255,255,0.015) 100%);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--glass-border);border-radius:var(--radius-2xl);padding:1.2rem;box-shadow:var(--shadow-card)}
 
-/* ── status card ── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 20px;
-  margin-bottom: 16px;
-}
-.card-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 12px;
-  font-weight: 600;
-}
+/* ── Button ── */
+.btn{display:inline-block;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 75%,transparent) 0%,color-mix(in srgb,var(--cyan) 55%,transparent) 100%);color:var(--text);border:none;padding:0.48rem 1.1rem;border-radius:var(--radius-xl);cursor:pointer;font-family:var(--mono);font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-decoration:none;box-shadow:var(--shadow-btn);transition:opacity 0.2s,transform 0.15s;text-transform:uppercase;touch-action:manipulation}
+.btn:hover{opacity:0.88;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;pointer-events:none}
 
-.status-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 24px;
-}
-@media (max-width: 480px) { .status-grid { grid-template-columns: 1fr; } }
+/* ── Badge ── */
+.badge{font-size:0.62rem;font-family:var(--mono);padding:0.1rem 0.45rem;border-radius:var(--radius-sm);letter-spacing:0.1em;font-weight:600;color:var(--sub);border:1px solid var(--glass-border);background:var(--glass)}
 
-.status-item label {
-  display: block;
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-.status-item .value {
-  font-family: var(--mono);
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
-.dot.red   { background: var(--error);   box-shadow: 0 0 6px var(--error); }
+/* ── Forms ── */
+input[type="text"],input[type="url"],input[type="password"],input[type="number"],input[type="email"],select,textarea{background:var(--glass);color:var(--text);border:1px solid var(--glass-border);padding:0.4rem 0.6rem;border-radius:var(--radius-md);font-family:var(--mono);font-size:0.82rem;width:100%;outline:none;transition:border-color 0.15s}
+input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+:focus:not(:focus-visible){outline:none}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 60%,transparent);outline-offset:2px}
+select option{background:var(--bg)}
+.checkbox-label{display:flex;align-items:center;gap:0.4rem;color:var(--text);font-size:0.82rem;cursor:pointer}
+input[type="checkbox"]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 
-/* ── form sections ── */
-.section-header {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  font-weight: 600;
-  margin: 24px 0 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-.section-header:first-child { margin-top: 0; }
+/* ── Status-Dot ── */
+.status-dot{display:inline-block;width:0.55rem;height:0.55rem;border-radius:50%;background:var(--sub);flex-shrink:0}
+.status-dot.ok{background:var(--ok);animation:pulse-ok 2s ease-in-out infinite}
+.status-dot.dead{background:var(--fehler)}
+@keyframes pulse-ok{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 40%,transparent)}50%{box-shadow:0 0 0 4px transparent}}
+@media(prefers-reduced-motion:reduce){.status-dot.ok{animation:none}}
 
-.field { margin-bottom: 14px; }
-.field label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  color: var(--text);
-}
-.field .hint {
-  font-size: 11px;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
+/* ── App layout ── */
+body{padding:24px 16px 64px}
+.container{max-width:640px;margin:0 auto}
 
-input[type="text"],
-input[type="number"],
-input[type="password"],
-select {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  padding: 7px 10px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-input:focus, select:focus {
-  border-color: var(--accent);
-}
-select option { background: var(--surface); }
+.header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.header h1{font-size:1.15rem;font-weight:700;font-family:var(--mono);color:var(--accent);letter-spacing:-0.5px}
 
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-.checkbox-row input[type="checkbox"] {
-  width: 16px; height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.checkbox-row span { font-size: 13px; }
+.card+.card{margin-top:16px}
+.card-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--sub);font-weight:600;margin-bottom:12px}
 
-/* ── two-column layout for compact fields ── */
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+@media(max-width:480px){.status-grid{grid-template-columns:1fr}}
+.status-item label{display:block;font-size:0.68rem;color:var(--sub);margin-bottom:2px}
+.status-item .value{font-family:var(--mono);font-size:0.8rem;display:flex;align-items:center;gap:6px}
 
-/* ── actions ── */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-button {
-  padding: 8px 20px;
-  border-radius: var(--radius);
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--font);
-  transition: opacity 0.15s;
-}
-button:active { opacity: 0.8; }
-.btn-primary { background: var(--accent); color: #0f172a; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.section-header{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--sub);font-weight:600;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--glass-border)}
+.section-header:first-child{margin-top:0}
 
-.feedback {
-  font-size: 13px;
-  font-family: var(--mono);
-  transition: opacity 0.3s;
-}
-.feedback.ok    { color: var(--success); }
-.feedback.err   { color: var(--error); }
-.feedback.hide  { opacity: 0; }
+.field{margin-bottom:12px}
+.field label{display:block;font-size:0.82rem;font-weight:500;margin-bottom:3px;color:var(--text)}
+.field .hint{font-size:0.68rem;color:var(--sub);margin-bottom:3px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.field-row{grid-template-columns:1fr}}
 
-/* ── restart notice ── */
-.restart-notice {
-  display: none;
-  background: rgba(251,146,60,0.1);
-  border: 1px solid var(--warning);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 12px;
-  color: var(--warning);
-  margin-top: 12px;
-}
-.restart-notice.show { display: block; }
+.actions{display:flex;align-items:center;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--glass-border)}
+.feedback{font-size:0.82rem;font-family:var(--mono);transition:opacity 0.3s}
+.feedback.ok{color:var(--ok)}
+.feedback.err{color:var(--fehler)}
+.feedback.hide{opacity:0}
+
+.restart-notice{display:none;background:color-mix(in srgb,var(--warn) 8%,transparent);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);border-radius:var(--radius-lg);padding:8px 12px;font-size:0.72rem;color:var(--warn);margin-top:10px}
+.restart-notice.show{display:block}
 </style>
 </head>
-<body>
+<body class="theme-amber">
 <div class="container">
 
   <div class="header">
@@ -233,7 +99,7 @@ button:active { opacity: 0.8; }
       <div class="status-item">
         <label>MQTT</label>
         <div class="value">
-          <span class="dot" id="mqtt-dot"></span>
+          <span class="status-dot" id="mqtt-dot"></span>
           <span id="mqtt-label">…</span>
         </div>
       </div>
@@ -302,7 +168,7 @@ button:active { opacity: 0.8; }
       </div>
     </div>
     <div class="field">
-      <label class="checkbox-row">
+      <label class="checkbox-label">
         <input type="checkbox" id="mqtt_retain">
         <span>Retain last message on broker</span>
       </label>
@@ -331,11 +197,11 @@ button:active { opacity: 0.8; }
         <option value="json">json</option>
         <option value="text">text</option>
       </select>
-      <div class="hint" style="margin-top:4px">Log format changes take effect after restart.</div>
+      <div class="hint" style="margin-top:4px">Changes take effect after restart.</div>
     </div>
 
     <div class="actions">
-      <button class="btn-primary" id="save-btn" onclick="saveConfig()">Save</button>
+      <button class="btn" id="save-btn" onclick="saveConfig()">Save</button>
       <span class="feedback hide" id="feedback"></span>
     </div>
 
@@ -348,7 +214,6 @@ button:active { opacity: 0.8; }
 
 <script>
 let originalConfig = null;
-
 const RECONNECT_FIELDS = ['mqtt_broker', 'mqtt_user', 'serial_port', 'baud_rate'];
 
 async function loadConfig() {
@@ -361,7 +226,7 @@ async function loadConfig() {
     document.getElementById('mqtt_broker').value       = cfg.mqtt_broker ?? '';
     document.getElementById('mqtt_topic_prefix').value = cfg.mqtt_topic_prefix ?? '';
     document.getElementById('mqtt_user').value         = cfg.mqtt_user ?? '';
-    document.getElementById('mqtt_pass').value         = ''; // never pre-fill passwords
+    document.getElementById('mqtt_pass').value         = '';
     document.getElementById('mqtt_retain').checked     = cfg.mqtt_retain ?? true;
     document.getElementById('mqtt_qos').value          = String(cfg.mqtt_qos ?? 0);
     document.getElementById('publish_interval').value  = cfg.publish_interval ?? '30s';
@@ -385,7 +250,7 @@ async function loadStatus() {
 
     const connected = !!st.mqtt_connected;
     const dot = document.getElementById('mqtt-dot');
-    dot.className = 'dot ' + (connected ? 'green' : 'red');
+    dot.className = 'status-dot ' + (connected ? 'ok' : 'dead');
     document.getElementById('mqtt-label').textContent = connected ? 'connected' : 'disconnected';
 
     const lp = st.last_publish ? new Date(st.last_publish) : null;
@@ -396,27 +261,25 @@ async function loadStatus() {
     document.getElementById('devices').textContent = devs.length ? devs.join(', ') : '—';
 
     document.getElementById('uptime').textContent = formatUptime(st.uptime_seconds ?? 0);
-  } catch (_) { /* silent – bridge may be starting */ }
+  } catch (_) {}
 }
 
 async function saveConfig() {
   const btn = document.getElementById('save-btn');
   btn.disabled = true;
-
   const payload = {
-    serial_port:      document.getElementById('serial_port').value.trim(),
-    baud_rate:        parseInt(document.getElementById('baud_rate').value, 10),
-    mqtt_broker:      document.getElementById('mqtt_broker').value.trim(),
+    serial_port:       document.getElementById('serial_port').value.trim(),
+    baud_rate:         parseInt(document.getElementById('baud_rate').value, 10),
+    mqtt_broker:       document.getElementById('mqtt_broker').value.trim(),
     mqtt_topic_prefix: document.getElementById('mqtt_topic_prefix').value.trim(),
-    mqtt_user:        document.getElementById('mqtt_user').value.trim(),
-    mqtt_pass:        document.getElementById('mqtt_pass').value, // empty = keep existing
-    mqtt_retain:      document.getElementById('mqtt_retain').checked,
-    mqtt_qos:         parseInt(document.getElementById('mqtt_qos').value, 10),
-    publish_interval: document.getElementById('publish_interval').value.trim(),
-    log_level:        document.getElementById('log_level').value,
-    log_format:       document.getElementById('log_format').value,
+    mqtt_user:         document.getElementById('mqtt_user').value.trim(),
+    mqtt_pass:         document.getElementById('mqtt_pass').value,
+    mqtt_retain:       document.getElementById('mqtt_retain').checked,
+    mqtt_qos:          parseInt(document.getElementById('mqtt_qos').value, 10),
+    publish_interval:  document.getElementById('publish_interval').value.trim(),
+    log_level:         document.getElementById('log_level').value,
+    log_format:        document.getElementById('log_format').value,
   };
-
   try {
     const r = await fetch('/api/config', {
       method: 'PUT',
@@ -424,8 +287,7 @@ async function saveConfig() {
       body: JSON.stringify(payload),
     });
     if (!r.ok) {
-      const msg = await r.text();
-      showFeedback(msg.trim(), true);
+      showFeedback((await r.text()).trim(), true);
       return;
     }
     showFeedback('Saved.', false);
@@ -440,12 +302,8 @@ async function saveConfig() {
 
 function checkReconnectNotice(payload) {
   if (!originalConfig) return;
-  const changed = RECONNECT_FIELDS.some(f => {
-    const key = f;
-    return String(payload[key] ?? '') !== String(originalConfig[key] ?? '');
-  });
-  const notice = document.getElementById('restart-notice');
-  notice.className = 'restart-notice' + (changed ? ' show' : '');
+  const changed = RECONNECT_FIELDS.some(f => String(payload[f] ?? '') !== String(originalConfig[f] ?? ''));
+  document.getElementById('restart-notice').className = 'restart-notice' + (changed ? ' show' : '');
 }
 
 function showFeedback(msg, isErr) {
@@ -457,8 +315,8 @@ function showFeedback(msg, isErr) {
 
 function formatRelative(date) {
   const secs = Math.round((Date.now() - date.getTime()) / 1000);
-  if (secs < 5)  return 'just now';
-  if (secs < 60) return secs + 's ago';
+  if (secs < 5)    return 'just now';
+  if (secs < 60)   return secs + 's ago';
   if (secs < 3600) return Math.round(secs / 60) + 'm ago';
   return Math.round(secs / 3600) + 'h ago';
 }
@@ -471,7 +329,6 @@ function formatUptime(secs) {
   return h + 'h ' + m + 'm';
 }
 
-// Init
 loadConfig();
 loadStatus();
 setInterval(loadStatus, 10000);

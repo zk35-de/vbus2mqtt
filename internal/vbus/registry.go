@@ -1,3 +1,5 @@
+//go:generate go run ../../../cmd/gen-registry ../../../tools/vbus_specification.vsf
+
 package vbus
 
 import (
@@ -45,71 +47,11 @@ func (r Registry) Register(src, dst, cmd uint16, def *PacketDef) {
 	r[pkey(src, dst, cmd)] = def
 }
 
-var DefaultRegistry = Registry{
-	// ── Cosmo DeltaSol BS2 / DrainBack ──────────────────────────────────────
-	// Source: 0x4278  Destination: 0x0010  Command: 0x0100
-	// Payload: 28 bytes (7 sub-frames)
-	pkey(0x4278, 0x0010, 0x0100): {
-		DeviceName: "DeltaSol BS2",
-		Fields: []FieldDef{
-			{Name: "temp_sensor1",     Offset: 0,  Type: Int16,  Factor: 0.1, Unit: "°C"},  // Kollektor
-			{Name: "temp_sensor2",     Offset: 2,  Type: Int16,  Factor: 0.1, Unit: "°C"},  // Puffer
-			{Name: "temp_sensor3",     Offset: 4,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor4",     Offset: 6,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "pump_speed_1",     Offset: 8,  Type: Uint8,  Factor: 1.0, Unit: "%"},
-			{Name: "pump_speed_2",     Offset: 9,  Type: Uint8,  Factor: 1.0, Unit: "%"},
-			{Name: "relay_mask",       Offset: 10, Type: Uint16, Factor: 1.0, Unit: ""},
-			{Name: "error_mask",       Offset: 12, Type: Uint16, Factor: 1.0, Unit: ""},
-			{Name: "operating_hours_1",Offset: 14, Type: Uint32, Factor: 1.0, Unit: "h"},
-			{Name: "operating_hours_2",Offset: 18, Type: Uint32, Factor: 1.0, Unit: "h"},
-			{Name: "heat_quantity",    Offset: 22, Type: Uint32, Factor: 1.0, Unit: "Wh"},
-		},
-	},
-
-	// ── DeltaSol BS (Resol) ──────────────────────────────────────────────────
-	// Source: 0x7112  Destination: 0x0010  Command: 0x0100
-	pkey(0x7112, 0x0010, 0x0100): {
-		DeviceName: "DeltaSol BS",
-		Fields: []FieldDef{
-			{Name: "temp_sensor1",    Offset: 0,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor2",    Offset: 2,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "pump_speed",      Offset: 8,  Type: Uint8,  Factor: 1.0, Unit: "%"},
-			{Name: "operating_hours", Offset: 10, Type: Uint32, Factor: 1.0, Unit: "h"},
-			{Name: "error_mask",      Offset: 14, Type: Uint16, Factor: 1.0, Unit: ""},
-		},
-	},
-
-	// ── DeltaSol BS Plus (Resol) ─────────────────────────────────────────────
-	// Source: 0x7110  Destination: 0x0010  Command: 0x0100
-	pkey(0x7110, 0x0010, 0x0100): {
-		DeviceName: "DeltaSol BS Plus",
-		Fields: []FieldDef{
-			{Name: "temp_sensor1",    Offset: 0,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor2",    Offset: 2,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor3",    Offset: 4,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor4",    Offset: 6,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "pump_speed1",     Offset: 8,  Type: Uint8,  Factor: 1.0, Unit: "%"},
-			{Name: "pump_speed2",     Offset: 9,  Type: Uint8,  Factor: 1.0, Unit: "%"},
-			{Name: "relay_mask",      Offset: 10, Type: Uint16, Factor: 1.0, Unit: ""},
-			{Name: "heat_quantity",   Offset: 12, Type: Uint32, Factor: 1.0, Unit: "Wh"},
-			{Name: "error_mask",      Offset: 16, Type: Uint16, Factor: 1.0, Unit: ""},
-		},
-	},
-
-	// ── DeltaSol C (Resol) ───────────────────────────────────────────────────
-	// Source: 0x7111  Destination: 0x0010  Command: 0x0100
-	pkey(0x7111, 0x0010, 0x0100): {
-		DeviceName: "DeltaSol C",
-		Fields: []FieldDef{
-			{Name: "temp_sensor1",    Offset: 0,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor2",    Offset: 2,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "temp_sensor3",    Offset: 4,  Type: Int16,  Factor: 0.1, Unit: "°C"},
-			{Name: "pump_speed1",     Offset: 8,  Type: Uint8,  Factor: 1.0, Unit: "%"},
-			{Name: "operating_hours", Offset: 10, Type: Uint32, Factor: 1.0, Unit: "h"},
-			{Name: "error_mask",      Offset: 14, Type: Uint16, Factor: 1.0, Unit: ""},
-		},
-	},
-}
+// DefaultRegistry is populated by init() calls in registry_custom.go (custom
+// devices that the Wippermann spec doesn't cover or gets wrong) and
+// registry_gen.go (generated from tools/vbus_specification.vsf).
+// Custom entries always take precedence over generated ones.
+var DefaultRegistry = Registry{}
 
 type TelemetryField struct {
 	Name  string
